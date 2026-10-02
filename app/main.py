@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import leads
+from . import leads, personal_tg
 from .bot import build_bot
 from .config import settings
 from .db import init_db
@@ -33,8 +33,17 @@ async def lifespan(app: FastAPI):
     else:
         log.warning("BOT_TOKEN is empty: running web CRM without the bot")
 
+    personal = None
+    if personal_tg.enabled():
+        try:
+            personal = await personal_tg.start()
+        except Exception:
+            log.exception("personal Telegram failed to start, CRM keeps running without it")
+
     yield
 
+    if personal:
+        await personal.disconnect()
     if polling:
         await dp.stop_polling()
         await asyncio.wait_for(polling, timeout=10)

@@ -1,0 +1,14 @@
+services:
+  crm:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /data/crm.db
+    volumes:
+      - crm_data:/data
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  crm_data:

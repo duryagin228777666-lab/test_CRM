@@ -54,3 +54,20 @@ def test_bot_source_tags():
     )
     assert set(leads.get_lead(lead_id)["tags"]) == {"бот", "таргет"}
     assert leads.latest_lead_for_tg_user("bot", 1)["id"] == lead_id
+
+
+def test_personal_telegram_flow():
+    # Переписку начал менеджер: лида нет.
+    assert leads.record_personal_message(chat_id=500, text="Привет", outgoing=True) == (None, False)
+
+    lead_id, created = leads.record_personal_message(
+        chat_id=501, text="Здравствуйте, нужна реклама", outgoing=False,
+        sender_id=501, sender_name="Маша", sender_username="masha_shop",
+    )
+    assert created
+    again, created = leads.record_personal_message(chat_id=501, text="Добрый день!", outgoing=True)
+    assert again == lead_id and not created
+
+    lead = leads.get_lead(lead_id)
+    assert lead["tags"] == ["личный tg"] and lead["contact"] == "@masha_shop"
+    assert [m["direction"] for m in lead["messages"]] == ["in", "out"]

@@ -6,4 +6,5 @@ itsdangerous==2.2.0
 python-dotenv==1.0.1
 aiogram==3.17.0
 aiohttp-socks==0.10.1
+telethon==1.45.0
 tzdata==2025.1

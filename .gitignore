@@ -6,4 +6,5 @@ data/
 *.db
 *.db-shm
 *.db-wal
-graphify-out/cache/
+graphify-out/
+.pytest_cache/

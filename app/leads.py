@@ -212,6 +212,37 @@ def lead_for_tg_chat(source: str, tg_chat_id: int) -> dict | None:
     return dict(row) if row else None
 
 
+def record_personal_message(
+    *,
+    chat_id: int,
+    text: str,
+    outgoing: bool,
+    sender_id: int | None = None,
+    sender_name: str = "",
+    sender_username: str | None = None,
+) -> tuple[int | None, bool]:
+    """Сообщение из личного Telegram менеджера. Возвращает (lead_id, создан_ли_новый_лид).
+
+    Новый лид появляется только от входящего сообщения: если переписку начал сам
+    менеджер, это не заявка, и такой чат игнорируется.
+    """
+    lead = lead_for_tg_chat("tg_personal", chat_id)
+    if lead is None:
+        if outgoing:
+            return None, False
+        lead_id = create_lead(
+            name=sender_name,
+            contact=f"@{sender_username}" if sender_username else f"tg id {sender_id}",
+            request=text[:2000],
+            source="tg_personal",
+            tg_user_id=sender_id, tg_username=sender_username, tg_chat_id=chat_id,
+        )
+        add_message(lead_id, "in", text[:4000])
+        return lead_id, True
+    add_message(lead["id"], "out" if outgoing else "in", text[:4000])
+    return lead["id"], False
+
+
 def is_empty() -> bool:
     with connect() as conn:
         return conn.execute("SELECT COUNT(*) FROM leads").fetchone()[0] == 0

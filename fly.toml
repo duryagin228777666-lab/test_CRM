@@ -1,0 +1,33 @@
+app = 'testovoe-zadanie-crm'
+primary_region = 'ams'
+
+[build]
+
+[env]
+  DB_PATH = '/data/crm.db'
+  TIMEZONE = 'Europe/Moscow'
+  SEED_DEMO = '1'
+
+[mounts]
+  source = 'crm_data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Бот работает через long polling: машина не должна засыпать.
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = '10s'
+    interval = '30s'
+    method = 'GET'
+    path = '/healthz'
+    timeout = '5s'
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1

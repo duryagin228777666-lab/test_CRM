@@ -24,6 +24,10 @@ class Settings:
     timezone: str
     seed_demo: bool
     telegram_proxy: str
+    tg_api_id: int | None
+    tg_api_hash: str
+    tg_session: str
+    tg_skip_contacts: bool
 
 
 settings = Settings(
@@ -37,4 +41,8 @@ settings = Settings(
     timezone=os.getenv("TIMEZONE", "Europe/Moscow"),
     seed_demo=os.getenv("SEED_DEMO", "0") == "1",
     telegram_proxy=os.getenv("TELEGRAM_PROXY", "").strip(),
+    tg_api_id=int(os.getenv("TG_API_ID")) if os.getenv("TG_API_ID", "").strip() else None,
+    tg_api_hash=os.getenv("TG_API_HASH", "").strip(),
+    tg_session=os.getenv("TG_SESSION", "").strip(),
+    tg_skip_contacts=os.getenv("TG_SKIP_CONTACTS", "1") == "1",
 )

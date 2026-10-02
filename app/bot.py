@@ -99,6 +99,15 @@ async def _notify_managers(bot: Bot, text: str) -> None:
             log.exception("failed to notify manager %s", chat_id)
 
 
+_active_bot: Bot | None = None
+
+
+async def notify_new_lead(lead_id: int, header: str) -> None:
+    """Для источников вне бота (юзербот): уведомление уходит, только если бот запущен."""
+    if _active_bot is not None:
+        await _notify_managers(_active_bot, _lead_summary(lead_id, header))
+
+
 # --- Пункт 1: анкета в боте -------------------------------------------------
 
 @router.message(CommandStart())
@@ -251,7 +260,8 @@ async def after_form(message: Message, bot: Bot):
     )
 
 
-# --- Пункт 2: личный Telegram через Telegram Business ----------------------
+# --- Пункт 2, вариант с Premium: личный Telegram через Telegram Business ---
+# Вариант без Premium (юзербот на Telethon) лежит в personal_tg.py.
 
 _connection_owner: dict[str, int] = {}
 
@@ -284,29 +294,17 @@ async def on_business_message(message: Message, bot: Bot):
     if not text or message.from_user is None:
         return
     owner_id = await _owner_id(bot, message.business_connection_id)
-    outgoing = message.from_user.id == owner_id
-    lead = leads.lead_for_tg_chat("tg_personal", message.chat.id)
-
-    if lead is None:
-        if outgoing:
-            # Переписку начал сам менеджер: это не входящий лид.
-            return
-        sender = message.from_user
-        lead_id = leads.create_lead(
-            name=sender.full_name,
-            contact=f"@{sender.username}" if sender.username else f"tg id {sender.id}",
-            request=text[:2000],
-            source="tg_personal",
-            tg_user_id=sender.id, tg_username=sender.username, tg_chat_id=message.chat.id,
-        )
-        leads.add_message(lead_id, "in", text[:4000])
+    sender = message.from_user
+    lead_id, created = leads.record_personal_message(
+        chat_id=message.chat.id, text=text, outgoing=sender.id == owner_id,
+        sender_id=sender.id, sender_name=sender.full_name, sender_username=sender.username,
+    )
+    if created:
         await _notify_managers(bot, _lead_summary(lead_id, "Новый лид из личного Telegram"))
-        return
-
-    leads.add_message(lead["id"], "out" if outgoing else "in", text[:4000])
 
 
 def build_bot() -> tuple[Bot, Dispatcher]:
+    global _active_bot
     session = AiohttpSession(proxy=settings.telegram_proxy) if settings.telegram_proxy else None
     bot = Bot(
         token=settings.bot_token,
@@ -315,4 +313,5 @@ def build_bot() -> tuple[Bot, Dispatcher]:
     )
     dp = Dispatcher()
     dp.include_router(router)
+    _active_bot = bot
     return bot, dp
