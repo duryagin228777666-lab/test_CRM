@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Новый лид — Мини-CRM{% endblock %}
+{% block content %}
+<h1>Новый лид</h1>
+<div class="card" style="max-width: 640px;">
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="/leads/new">
+    <label for="name">Имя или компания</label>
+    <input class="field" type="text" id="name" name="name" value="{{ form.name or '' }}" autofocus>
+    <label for="contact">Контакт</label>
+    <input class="field" type="text" id="contact" name="contact" value="{{ form.contact or '' }}" placeholder="телефон, @username, email">
+    <label for="request">Запрос</label>
+    <textarea id="request" name="request" placeholder="Что нужно клиенту">{{ form.request or '' }}</textarea>
+    <label for="tags">Теги через запятую</label>
+    <input class="field" type="text" id="tags" name="tags" value="{{ form.tags or '' }}" placeholder="например: seo, горячий" list="known-tags">
+    {% include "_tag_picker.html" %}
+    <p class="muted">Тег «вручную» добавится автоматически.</p>
+    <p><button type="submit">Создать лида</button> <a href="/leads">отмена</a></p>
+  </form>
+</div>
+{% endblock %}

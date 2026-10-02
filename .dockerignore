@@ -1,0 +1,9 @@
+.venv
+.git
+.env
+data
+tests
+docs
+graphify-out
+__pycache__
+*.db

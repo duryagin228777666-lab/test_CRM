@@ -1,0 +1,19 @@
+{% if tags %}
+<div class="chips" style="margin-top: 8px;">
+  <span class="muted">Существующие:</span>
+  {% for t in tags %}
+    <button type="button" class="chip" style="cursor: pointer;" data-tag="{{ t.name }}">{{ t.name }}</button>
+  {% endfor %}
+</div>
+<script>
+  document.currentScript.previousElementSibling.addEventListener("click", (e) => {
+    const name = e.target.dataset.tag;
+    if (!name) return;
+    const input = document.getElementById("tags");
+    const current = input.value.split(",").map((s) => s.trim()).filter(Boolean);
+    if (!current.includes(name)) current.push(name);
+    input.value = current.join(", ");
+    input.focus();
+  });
+</script>
+{% endif %}

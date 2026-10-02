@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Мини-CRM{% endblock %}</title>
+  <style>
+    :root { --fg: #1d2330; --muted: #6b7280; --line: #e5e7eb; --accent: #2563eb; --bg: #f7f8fa; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--bg); }
+    header { display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: #fff; border-bottom: 1px solid var(--line); }
+    header .logo { font-weight: 700; color: var(--fg); text-decoration: none; }
+    header .spacer { flex: 1; }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    a { color: var(--accent); }
+    h1 { font-size: 22px; margin: 0 0 16px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; margin-bottom: 16px; }
+    .muted { color: var(--muted); }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    input[type=text], input[type=password], textarea, select { font: inherit; padding: 8px 10px; border: 1px solid #cfd4dc; border-radius: 6px; background: #fff; }
+    textarea { width: 100%; min-height: 90px; }
+    label { display: block; margin: 10px 0 4px; font-weight: 600; }
+    .field { width: 100%; }
+    button, .btn { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-ghost { background: #fff; color: var(--accent); }
+    .link-btn { background: none; border: none; color: var(--muted); padding: 0 0 0 4px; cursor: pointer; }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 13px; text-decoration: none; border: 1px solid transparent; }
+    .chip.active { background: var(--accent); color: #fff; }
+    .chip .count { margin-left: 6px; opacity: .7; }
+    .chip form { display: inline; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 13px; color: var(--muted); font-weight: 600; background: #fafbfc; }
+    tr:last-child td { border-bottom: none; }
+    .request { max-width: 380px; white-space: pre-wrap; }
+    .status { font-size: 12px; padding: 2px 8px; border-radius: 4px; background: #f3f4f6; white-space: nowrap; }
+    .status-new { background: #dcfce7; color: #166534; }
+    .status-in_work { background: #fef9c3; color: #854d0e; }
+    .error { color: #b91c1c; margin: 8px 0; }
+    .msg { padding: 8px 12px; border-radius: 8px; margin: 6px 0; max-width: 75%; white-space: pre-wrap; }
+    .msg-in { background: #f3f4f6; }
+    .msg-out { background: #dbeafe; margin-left: auto; }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } .request { max-width: none; } }
+  </style>
+</head>
+<body>
+  {% if user %}
+  <header>
+    <a class="logo" href="/leads">Мини-CRM агентства</a>
+    <a href="/leads">Лиды</a>
+    <a href="/leads/new">Добавить лида</a>
+    <span class="spacer"></span>
+    <span class="muted">{{ user }}</span>
+    <form method="post" action="/logout"><button class="btn-ghost">Выйти</button></form>
+  </header>
+  {% endif %}
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

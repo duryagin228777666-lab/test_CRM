@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Лид №{{ lead.id }} — Мини-CRM{% endblock %}
+{% block content %}
+<p><a href="/leads">&larr; все лиды</a></p>
+<h1>Лид №{{ lead.id }}: {{ lead.name or "Без имени" }}</h1>
+
+<div class="grid">
+  <div>
+    <div class="card">
+      <form method="post" action="/leads/{{ lead.id }}/edit">
+        <label for="name">Имя или компания</label>
+        <input class="field" type="text" id="name" name="name" value="{{ lead.name }}">
+        <label for="contact">Контакт</label>
+        <input class="field" type="text" id="contact" name="contact" value="{{ lead.contact }}">
+        <label for="request">Запрос</label>
+        <textarea id="request" name="request">{{ lead.request }}</textarea>
+        <p><button type="submit">Сохранить</button></p>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top: 0;">Переписка</h3>
+      {% if lead.messages %}
+        {% for m in lead.messages %}
+          <div class="msg msg-{{ m.direction }}">{{ m.text }}
+            <div class="muted" style="font-size: 12px;">{{ "клиент" if m.direction == "in" else "менеджер" }}, {{ m.created_at|local_time }}</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p class="muted">Сообщений после заявки нет.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h3 style="margin-top: 0;">Теги</h3>
+      <div class="chips">
+        {% for name in lead.tags %}
+          <span class="chip">
+            <a href="/leads?tag={{ name|urlencode }}" style="color: inherit; text-decoration: none;">{{ name }}</a>
+            <form method="post" action="/leads/{{ lead.id }}/tags/remove">
+              <input type="hidden" name="tag" value="{{ name }}">
+              <button class="link-btn" title="Снять тег">&times;</button>
+            </form>
+          </span>
+        {% else %}
+          <span class="muted">Тегов нет</span>
+        {% endfor %}
+      </div>
+      <form method="post" action="/leads/{{ lead.id }}/tags" style="margin-top: 12px;">
+        <div class="row">
+          <input type="text" id="tags" name="tags" placeholder="новый тег или несколько через запятую" style="flex: 1;">
+          <button type="submit">Добавить</button>
+        </div>
+        {% with tags = all_tags | rejectattr("name", "in", lead.tags) | list %}
+          {% include "_tag_picker.html" %}
+        {% endwith %}
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top: 0;">Статус</h3>
+      <form method="post" action="/leads/{{ lead.id }}/status" class="row">
+        <select name="status">
+          {% for code, label in STATUSES.items() %}
+            <option value="{{ code }}" {% if code == lead.status %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">Сменить</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top: 0;">Откуда</h3>
+      <p>{{ SOURCES[lead.source] }}</p>
+      {% set link = tg_link(lead) %}
+      {% if link %}<p><a href="{{ link }}" target="_blank" rel="noopener">Написать в Telegram</a></p>{% endif %}
+      <p class="muted">Создан {{ lead.created_at|local_time }}<br>Изменён {{ lead.updated_at|local_time }}</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

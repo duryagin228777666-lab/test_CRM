@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Лиды — Мини-CRM{% endblock %}
+{% block content %}
+<div class="row" style="justify-content: space-between; margin-bottom: 12px;">
+  <h1 style="margin: 0;">Лиды{% if active_tag %} с тегом «{{ active_tag }}»{% endif %} <span class="muted">({{ leads|length }})</span></h1>
+  <a class="btn" href="/leads/new">+ Добавить лида</a>
+</div>
+
+<div class="card">
+  <form method="get" action="/leads" class="row">
+    {% if active_tag %}<input type="hidden" name="tag" value="{{ active_tag }}">{% endif %}
+    <input type="text" name="q" value="{{ q }}" placeholder="Поиск по имени, контакту, запросу" style="flex: 1; min-width: 220px;">
+    <button type="submit">Найти</button>
+    {% if q %}<a href="/leads{% if active_tag %}?tag={{ active_tag|urlencode }}{% endif %}">сбросить поиск</a>{% endif %}
+  </form>
+  <div class="chips" style="margin-top: 12px;">
+    <a class="chip {% if not active_tag %}active{% endif %}" href="/leads{% if q %}?q={{ q|urlencode }}{% endif %}">все</a>
+    {% for t in tags %}
+      <a class="chip {% if t.name == active_tag %}active{% endif %}"
+         href="/leads?tag={{ t.name|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}">{{ t.name }}<span class="count">{{ t.count }}</span></a>
+    {% endfor %}
+  </div>
+</div>
+
+{% if leads %}
+<table>
+  <thead>
+    <tr><th>#</th><th>Лид</th><th>Запрос</th><th>Теги</th><th>Источник</th><th>Создан</th></tr>
+  </thead>
+  <tbody>
+  {% for lead in leads %}
+    <tr>
+      <td><a href="/leads/{{ lead.id }}">{{ lead.id }}</a></td>
+      <td>
+        <a href="/leads/{{ lead.id }}"><b>{{ lead.name or "Без имени" }}</b></a><br>
+        <span class="muted">{{ lead.contact }}</span><br>
+        <span class="status status-{{ lead.status }}">{{ STATUSES[lead.status] }}</span>
+      </td>
+      <td class="request">{{ lead.request|truncate(160) }}</td>
+      <td><div class="chips">
+        {% for name in lead.tags %}<a class="chip" href="/leads?tag={{ name|urlencode }}">{{ name }}</a>{% endfor %}
+      </div></td>
+      <td>{{ SOURCES[lead.source] }}</td>
+      <td class="muted">{{ lead.created_at|local_time }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="card muted">
+  {% if active_tag or q %}Ничего не найдено.{% else %}Лидов пока нет. Напишите боту или добавьте лида вручную.{% endif %}
+</div>
+{% endif %}
+{% endblock %}

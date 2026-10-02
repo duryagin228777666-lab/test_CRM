@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Вход — Мини-CRM{% endblock %}
+{% block content %}
+<div class="card" style="max-width: 360px; margin: 60px auto;">
+  <h1>Вход в CRM</h1>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post" action="/login">
+    <label for="login">Логин</label>
+    <input class="field" type="text" id="login" name="login" autocomplete="username" required autofocus>
+    <label for="password">Пароль</label>
+    <input class="field" type="password" id="password" name="password" autocomplete="current-password" required>
+    <p><button type="submit">Войти</button></p>
+  </form>
+</div>
+{% endblock %}
