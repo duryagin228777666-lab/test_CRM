@@ -119,9 +119,49 @@ def remove_tag(lead_id: int, name: str) -> None:
                WHERE lead_id = ? AND tag_id = (SELECT id FROM tags WHERE name = ?)""",
             (lead_id, name),
         )
-        # Тег, который больше ни на ком не висит, не нужен в списке фильтров.
-        conn.execute("DELETE FROM tags WHERE id NOT IN (SELECT tag_id FROM lead_tags)")
         _touch(conn, lead_id)
+
+
+def create_tag(raw: str) -> str | None:
+    name = normalize_tag(raw)
+    if not name:
+        return None
+    with connect() as conn:
+        _tag_id(conn, name)
+    return name
+
+
+def rename_tag(old: str, new_raw: str) -> str | None:
+    """Переименовывает тег у всех лидов. Если новое имя уже есть, лиды переезжают на него."""
+    old_name = normalize_tag(old)
+    new_name = normalize_tag(new_raw)
+    if not old_name or not new_name or old_name == new_name:
+        return new_name
+    with connect() as conn:
+        old_row = conn.execute("SELECT id FROM tags WHERE name = ?", (old_name,)).fetchone()
+        if old_row is None:
+            return None
+        new_row = conn.execute("SELECT id FROM tags WHERE name = ?", (new_name,)).fetchone()
+        if new_row is None:
+            conn.execute("UPDATE tags SET name = ? WHERE id = ?", (new_name, old_row["id"]))
+            return new_name
+        conn.execute(
+            """INSERT OR IGNORE INTO lead_tags (lead_id, tag_id)
+               SELECT lead_id, ? FROM lead_tags WHERE tag_id = ?""",
+            (new_row["id"], old_row["id"]),
+        )
+        conn.execute("DELETE FROM lead_tags WHERE tag_id = ?", (old_row["id"],))
+        conn.execute("DELETE FROM tags WHERE id = ?", (old_row["id"],))
+    return new_name
+
+
+def delete_tag(name: str) -> None:
+    with connect() as conn:
+        row = conn.execute("SELECT id FROM tags WHERE name = ?", (name,)).fetchone()
+        if row is None:
+            return
+        conn.execute("DELETE FROM lead_tags WHERE tag_id = ?", (row["id"],))
+        conn.execute("DELETE FROM tags WHERE id = ?", (row["id"],))
 
 
 def add_message(lead_id: int, direction: str, text: str) -> None:
@@ -173,7 +213,7 @@ def tag_counts() -> list[dict]:
     with connect() as conn:
         rows = conn.execute(
             """SELECT t.name, COUNT(lt.lead_id) AS count FROM tags t
-               JOIN lead_tags lt ON lt.tag_id = t.id
+               LEFT JOIN lead_tags lt ON lt.tag_id = t.id
                GROUP BY t.id ORDER BY count DESC, t.name"""
         )
         return [dict(row) for row in rows]

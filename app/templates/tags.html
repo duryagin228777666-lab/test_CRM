@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Теги — Мини-CRM{% endblock %}
+{% block content %}
+<h1>Теги</h1>
+
+<div class="card" style="max-width: 720px;">
+  <h3 style="margin-top: 0;">Новый тег</h3>
+  {% if error %}<div class="error">Напишите название тега.</div>{% endif %}
+  <form method="post" action="/tags" class="row">
+    <input type="text" name="name" placeholder="например: горячий" style="flex: 1;" autofocus required>
+    <button type="submit">Добавить</button>
+  </form>
+  <p class="muted">Переименование меняет тег у всех лидов сразу. Удаление снимает его со всех лидов.</p>
+</div>
+
+{% if tags %}
+<div class="card" style="max-width: 720px;">
+  {% for t in tags %}
+  <div class="row" style="margin-bottom: 10px;">
+    <form method="post" action="/tags/rename" class="row" style="flex: 1;">
+      <input type="hidden" name="old" value="{{ t.name }}">
+      <input type="text" name="name" value="{{ t.name }}" style="flex: 1;" required>
+      <button type="submit">Изменить</button>
+    </form>
+    <span class="muted" style="min-width: 64px;">{{ t.count }} лид.</span>
+    <form method="post" action="/tags/delete" onsubmit="return confirm('Удалить этот тег у всех лидов?')">
+      <input type="hidden" name="name" value="{{ t.name }}">
+      <button type="submit" class="btn-ghost">Удалить</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card muted" style="max-width: 720px;">Тегов пока нет.</div>
+{% endif %}
+{% endblock %}

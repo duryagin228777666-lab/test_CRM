@@ -91,6 +91,33 @@ def logout(request: Request):
     return RedirectResponse("/login", status_code=303)
 
 
+@router.get("/tags")
+def tags_page(request: Request, error: str | None = None, user: str = Depends(require_user)):
+    return templates.TemplateResponse(request, "tags.html", {
+        "tags": leads.tag_counts(), "user": user, "error": error,
+    })
+
+
+@router.post("/tags")
+def tags_create(name: str = Form(""), user: str = Depends(require_user)):
+    if leads.create_tag(name) is None:
+        return RedirectResponse("/tags?error=empty", status_code=303)
+    return RedirectResponse("/tags", status_code=303)
+
+
+@router.post("/tags/rename")
+def tags_rename(old: str = Form(...), name: str = Form(""), user: str = Depends(require_user)):
+    if leads.rename_tag(old, name) is None and not leads.normalize_tag(name):
+        return RedirectResponse("/tags?error=empty", status_code=303)
+    return RedirectResponse("/tags", status_code=303)
+
+
+@router.post("/tags/delete")
+def tags_delete(name: str = Form(...), user: str = Depends(require_user)):
+    leads.delete_tag(name)
+    return RedirectResponse("/tags", status_code=303)
+
+
 @router.get("/leads")
 def leads_list(request: Request, tag: str | None = None, q: str | None = None,
                user: str = Depends(require_user)):

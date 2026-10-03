@@ -22,7 +22,7 @@ from aiogram.types import (
 )
 
 from . import leads
-from .config import settings
+from .config import lead_card_url, settings
 
 log = logging.getLogger("crm.bot")
 router = Router()
@@ -79,14 +79,17 @@ def _looks_like_contact(text: str) -> bool:
 def _lead_summary(lead_id: int, header: str) -> str:
     lead = leads.get_lead(lead_id)
     esc = html.escape
-    return (
+    text = (
         f"<b>{esc(header)}</b>\n"
         f"Имя: {esc(lead['name'] or '—')}\n"
         f"Контакт: {esc(lead['contact'] or '—')}\n"
         f"Запрос: {esc(lead['request'] or '—')}\n"
-        f"Теги: {esc(', '.join(lead['tags']))}\n"
-        f"{settings.public_url}/leads/{lead_id}"
+        f"Теги: {esc(', '.join(lead['tags']))}"
     )
+    link = lead_card_url(lead_id)
+    if link:
+        text += f"\n{link}"
+    return text
 
 
 async def _notify_managers(bot: Bot, text: str) -> None:
@@ -253,11 +256,13 @@ async def after_form(message: Message, bot: Bot):
         return
     leads.add_message(lead["id"], "in", message.text[:4000])
     await message.answer("Передали менеджеру, спасибо!")
-    await _notify_managers(
-        bot,
-        f"<b>Дополнение к заявке №{lead['id']}</b>\n{html.escape(message.text[:1000])}\n"
-        f"{settings.public_url}/leads/{lead['id']}",
+    extra = (
+        f"<b>Дополнение к заявке №{lead['id']}</b>\n{html.escape(message.text[:1000])}"
     )
+    link = lead_card_url(lead["id"])
+    if link:
+        extra += f"\n{link}"
+    await _notify_managers(bot, extra)
 
 
 # --- Пункт 2, вариант с Premium: личный Telegram через Telegram Business ---

@@ -31,7 +31,8 @@ def test_manual_lead_and_tags(client):
     client.post(f"/leads/{lead_id}/tags", data={"tags": "vip"})
     client.post(f"/leads/{lead_id}/tags/remove", data={"tag": "горячий"})
     assert set(leads.get_lead(lead_id)["tags"]) == {"seo", "vip", "вручную"}
-    assert "горячий" not in [t["name"] for t in leads.tag_counts()]
+    counts = {t["name"]: t["count"] for t in leads.tag_counts()}
+    assert counts["горячий"] == 0
 
     by_tag = client.get("/leads", params={"tag": "seo"}).text
     assert "Тест Петров" in by_tag and "Ирина" not in by_tag
@@ -40,6 +41,22 @@ def test_manual_lead_and_tags(client):
     client.post(f"/leads/{lead_id}/status", data={"status": "in_work"})
     assert leads.get_lead(lead_id)["status"] == "in_work"
     assert client.get(f"/leads/{lead_id}").status_code == 200
+
+
+def test_tag_catalog(client):
+    assert client.post("/tags", data={"name": "  #Пауза "}, follow_redirects=False).headers["location"] == "/tags"
+    assert "пауза" in {t["name"] for t in leads.tag_counts()}
+
+    client.post("/tags/rename", data={"old": "пауза", "name": "на паузе"})
+    names = {t["name"] for t in leads.tag_counts()}
+    assert "на паузе" in names and "пауза" not in names
+
+    page = client.get("/tags").text
+    assert "Изменить" in page and "на паузе" in page
+
+    client.post("/tags/delete", data={"name": "на паузе"})
+    assert "на паузе" not in {t["name"] for t in leads.tag_counts()}
+    assert "error=empty" in client.post("/tags", data={"name": " "}, follow_redirects=False).headers["location"]
 
 
 def test_validation(client):

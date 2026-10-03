@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -46,3 +47,13 @@ settings = Settings(
     tg_session=os.getenv("TG_SESSION", "").strip(),
     tg_skip_contacts=os.getenv("TG_SKIP_CONTACTS", "1") == "1",
 )
+
+_LOCAL_PUBLIC_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
+def lead_card_url(lead_id: int) -> str | None:
+    """Ссылка на карточку в уведомлениях; для локального PUBLIC_URL не шлём."""
+    host = (urlparse(settings.public_url).hostname or "").lower()
+    if host in _LOCAL_PUBLIC_HOSTS:
+        return None
+    return f"{settings.public_url}/leads/{lead_id}"
