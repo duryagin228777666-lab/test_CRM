@@ -25,7 +25,7 @@
 {% if leads %}
 <table>
   <thead>
-    <tr><th>#</th><th>Лид</th><th>Запрос</th><th>Теги</th><th>Источник</th><th>Создан</th></tr>
+    <tr><th>#</th><th>Лид</th><th>Запрос</th><th>Теги</th><th>Источник</th><th>Создан</th><th></th></tr>
   </thead>
   <tbody>
   {% for lead in leads %}
@@ -42,6 +42,12 @@
       </div></td>
       <td>{{ SOURCES[lead.source] }}</td>
       <td class="muted">{{ lead.created_at|local_time }}</td>
+      <td>
+        <form method="post" action="/leads/{{ lead.id }}/delete"
+              onsubmit="return confirm('Удалить этого лида без возможности восстановления?')">
+          <button type="submit" class="btn-ghost btn-danger">Удалить</button>
+        </form>
+      </td>
     </tr>
   {% endfor %}
   </tbody>
