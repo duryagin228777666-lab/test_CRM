@@ -42,6 +42,10 @@ def test_manual_lead_and_tags(client):
     assert leads.get_lead(lead_id)["status"] == "in_work"
     assert client.get(f"/leads/{lead_id}").status_code == 200
 
+    r = client.post(f"/leads/{lead_id}/delete", follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"] == "/leads"
+    assert leads.get_lead(lead_id) is None
+
 
 def test_tag_catalog(client):
     assert client.post("/tags", data={"name": "  #Пауза "}, follow_redirects=False).headers["location"] == "/tags"

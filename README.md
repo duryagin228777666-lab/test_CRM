@@ -7,6 +7,7 @@
 
 Лиды размечаются тегами (автоматически по источнику и услуге, плюс вручную) и фильтруются по тегу.
 
+- Документ к сдаче (набросок и разбор): [docs/submission.md](docs/submission.md)
 - Набросок продукта: [docs/product-sketch.md](docs/product-sketch.md)
 - Журнал решений: [docs/decisions-log.md](docs/decisions-log.md)
 

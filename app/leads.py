@@ -97,6 +97,12 @@ def update_lead(lead_id: int, *, name: str, contact: str, request: str) -> None:
         )
 
 
+def delete_lead(lead_id: int) -> bool:
+    with connect() as conn:
+        cur = conn.execute("DELETE FROM leads WHERE id = ?", (lead_id,))
+        return cur.rowcount > 0
+
+
 def set_status(lead_id: int, status: str) -> None:
     if status not in STATUSES:
         raise ValueError(f"unknown status: {status}")

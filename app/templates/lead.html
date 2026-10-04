@@ -78,6 +78,13 @@
       {% if link %}<p><a href="{{ link }}" target="_blank" rel="noopener">Написать в Telegram</a></p>{% endif %}
       <p class="muted">Создан {{ lead.created_at|local_time }}<br>Изменён {{ lead.updated_at|local_time }}</p>
     </div>
+
+    <div class="card">
+      <form method="post" action="/leads/{{ lead.id }}/delete"
+            onsubmit="return confirm('Удалить этого лида без возможности восстановления?')">
+        <button type="submit" class="btn-ghost btn-danger">Удалить лида</button>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

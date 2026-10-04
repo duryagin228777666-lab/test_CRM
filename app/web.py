@@ -192,3 +192,10 @@ def lead_remove_tag(lead_id: int, tag: str = Form(...), user: str = Depends(requ
     _existing_lead(lead_id)
     leads.remove_tag(lead_id, tag)
     return _back_to_lead(lead_id)
+
+
+@router.post("/leads/{lead_id}/delete")
+def lead_delete(lead_id: int, user: str = Depends(require_user)):
+    if not leads.delete_lead(lead_id):
+        raise HTTPException(404, "Лид не найден")
+    return RedirectResponse("/leads", status_code=303)
