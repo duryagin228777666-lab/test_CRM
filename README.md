@@ -54,17 +54,13 @@ Polling может работать только в одном экземпля�
 
 ## Деплой
 
-**Fly.io** (конфиг в `fly.toml`, SQLite на volume):
+**Railway** (сборка из `Dockerfile` по репозиторию на GitHub):
 
-```powershell
-flyctl auth login
-flyctl apps create testovoe-zadanie-crm
-flyctl volumes create crm_data --region ams --size 1 -a testovoe-zadanie-crm
-flyctl secrets set -a testovoe-zadanie-crm BOT_TOKEN=... MANAGER_CHAT_IDS=... `
-  ADMIN_LOGIN=demo ADMIN_PASSWORD=... SECRET_KEY=... `
-  PUBLIC_URL=https://testovoe-zadanie-crm.fly.dev `
-  TG_API_ID=... TG_API_HASH=... TG_SESSION=...
-flyctl deploy
-```
+1. New Project > Deploy from GitHub repo, выбрать этот репозиторий.
+2. Settings > Volumes > Add Volume с путём `/data`. База лежит в `/data/crm.db` и переживает передеплой.
+3. Variables: `BOT_TOKEN`, `MANAGER_CHAT_IDS`, `ADMIN_LOGIN`, `ADMIN_PASSWORD`, `SECRET_KEY`, `PUBLIC_URL` (адрес сервиса на Railway), при необходимости `TG_API_ID`, `TG_API_HASH`, `TG_SESSION`.
+4. Settings > Networking > Generate Domain, порт `8080`.
+
+После каждого push в `main` Railway пересобирает приложение сам.
 
 **VPS с Docker:** заполните `.env` и выполните `docker compose up -d --build`. Приложение слушает `127.0.0.1:8080`. Выпустите его наружу через nginx с HTTPS и укажите `PUBLIC_URL`. Если сервер в РФ и `api.telegram.org` с него недоступен, задайте `TELEGRAM_PROXY`.
