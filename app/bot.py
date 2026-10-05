@@ -10,6 +10,8 @@ from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
+    BotCommand,
+    BotCommandScopeChat,
     BusinessConnection,
     CallbackQuery,
     InlineKeyboardButton,
@@ -48,6 +50,31 @@ class Form(StatesGroup):
     contact = State()
     request = State()
     confirm = State()
+
+
+class ManagerLead(StatesGroup):
+    name = State()
+    contact = State()
+    request = State()
+    tags = State()
+
+
+SKIP = "Пропустить"
+
+
+def _is_manager(message: Message) -> bool:
+    return message.chat.id in settings.manager_chat_ids
+
+
+def _skip_kb() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=SKIP)]], resize_keyboard=True, one_time_keyboard=True
+    )
+
+
+def _optional(text: str) -> str:
+    text = text.strip()
+    return "" if text in (SKIP, "-") else text
 
 
 def _services_kb() -> InlineKeyboardMarkup:
@@ -128,6 +155,78 @@ async def start(message: Message, state: FSMContext):
 @router.message(Command("id"))
 async def my_id(message: Message):
     await message.answer(f"chat id: <code>{message.chat.id}</code>")
+
+
+@router.message(Command("cancel"))
+async def cancel(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer("Отменено.", reply_markup=ReplyKeyboardRemove())
+
+
+# --- Ручное добавление лида менеджером прямо в Telegram ----------------------
+
+@router.message(Command("add"), _is_manager)
+async def manager_add(message: Message, state: FSMContext):
+    await state.clear()
+    await state.set_state(ManagerLead.name)
+    await message.answer(
+        "Новый лид. Как зовут клиента?\n/cancel — отменить.", reply_markup=ReplyKeyboardRemove()
+    )
+
+
+@router.message(ManagerLead.name, F.text)
+async def manager_name(message: Message, state: FSMContext):
+    name = message.text.strip()[:100]
+    if not name:
+        await message.answer("Напишите имя клиента.")
+        return
+    await state.update_data(name=name)
+    await state.set_state(ManagerLead.contact)
+    await message.answer(
+        "Контакт клиента: телефон, @username или email. Можно переслать карточку контакта.",
+        reply_markup=_skip_kb(),
+    )
+
+
+@router.message(ManagerLead.contact, F.contact)
+async def manager_contact_shared(message: Message, state: FSMContext):
+    phone = message.contact.phone_number
+    await _manager_save_contact(message, state, phone if phone.startswith("+") else f"+{phone}")
+
+
+@router.message(ManagerLead.contact, F.text)
+async def manager_contact_text(message: Message, state: FSMContext):
+    await _manager_save_contact(message, state, _optional(message.text)[:100])
+
+
+async def _manager_save_contact(message: Message, state: FSMContext, contact: str):
+    await state.update_data(contact=contact)
+    await state.set_state(ManagerLead.request)
+    await message.answer("Что нужно клиенту?", reply_markup=_skip_kb())
+
+
+@router.message(ManagerLead.request, F.text)
+async def manager_request(message: Message, state: FSMContext):
+    await state.update_data(request=_optional(message.text)[:2000])
+    await state.set_state(ManagerLead.tags)
+    await message.answer(
+        "Теги через запятую, например: горячий, seo.", reply_markup=_skip_kb()
+    )
+
+
+@router.message(ManagerLead.tags, F.text)
+async def manager_tags(message: Message, state: FSMContext):
+    data = await state.get_data()
+    await state.clear()
+    lead_id = leads.create_lead(
+        name=data["name"], contact=data["contact"], request=data["request"],
+        source="manual", tags=leads.parse_tags(_optional(message.text)),
+    )
+    await message.answer(
+        _lead_summary(lead_id, f"Лид №{lead_id} добавлен в CRM"),
+        reply_markup=ReplyKeyboardRemove(),
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
+    )
 
 
 @router.callback_query(Form.service, F.data.startswith("svc:"))
@@ -243,7 +342,10 @@ async def send(callback: CallbackQuery, state: FSMContext, bot: Bot):
     await _notify_managers(bot, _lead_summary(lead_id, "Новый лид из бота"))
 
 
-@router.message(StateFilter(Form.name, Form.contact, Form.request))
+@router.message(StateFilter(
+    Form.name, Form.contact, Form.request,
+    ManagerLead.name, ManagerLead.contact, ManagerLead.request, ManagerLead.tags,
+))
 async def need_text(message: Message):
     await message.answer("Ответьте, пожалуйста, текстом.")
 
@@ -308,6 +410,21 @@ async def on_business_message(message: Message, bot: Bot):
         await _notify_managers(bot, _lead_summary(lead_id, "Новый лид из личного Telegram"))
 
 
+async def _setup_commands(bot: Bot) -> None:
+    try:
+        await bot.set_my_commands([BotCommand(command="start", description="Оставить заявку")])
+        manager_commands = [
+            BotCommand(command="add", description="Добавить лида в CRM"),
+            BotCommand(command="cancel", description="Отменить ввод"),
+            BotCommand(command="start", description="Анкета клиента"),
+            BotCommand(command="id", description="Мой chat id"),
+        ]
+        for chat_id in settings.manager_chat_ids:
+            await bot.set_my_commands(manager_commands, scope=BotCommandScopeChat(chat_id=chat_id))
+    except Exception:
+        log.exception("failed to set bot commands")
+
+
 def build_bot() -> tuple[Bot, Dispatcher]:
     global _active_bot
     session = AiohttpSession(proxy=settings.telegram_proxy) if settings.telegram_proxy else None
@@ -318,5 +435,6 @@ def build_bot() -> tuple[Bot, Dispatcher]:
     )
     dp = Dispatcher()
     dp.include_router(router)
+    dp.startup.register(_setup_commands)
     _active_bot = bot
     return bot, dp

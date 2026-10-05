@@ -1,3 +1,8 @@
+import asyncio
+import re
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -75,6 +80,36 @@ def test_bot_source_tags():
     )
     assert set(leads.get_lead(lead_id)["tags"]) == {"бот", "таргет"}
     assert leads.latest_lead_for_tg_user("bot", 1)["id"] == lead_id
+
+
+def test_manager_adds_lead_in_bot():
+    from aiogram.fsm.context import FSMContext
+    from aiogram.fsm.storage.base import StorageKey
+    from aiogram.fsm.storage.memory import MemoryStorage
+
+    from app import bot
+
+    state = FSMContext(MemoryStorage(), StorageKey(bot_id=1, chat_id=42, user_id=42))
+
+    def msg(text):
+        return SimpleNamespace(text=text, contact=None, answer=AsyncMock())
+
+    async def scenario():
+        await bot.manager_add(msg("/add"), state)
+        await bot.manager_name(msg("Пётр с выставки"), state)
+        await bot.manager_contact_text(msg("+7 900 555-44-33"), state)
+        await bot.manager_request(msg(bot.SKIP), state)
+        last = msg("Горячий, SEO")
+        await bot.manager_tags(last, state)
+        return last, await state.get_state()
+
+    last, final_state = asyncio.run(scenario())
+    assert final_state is None
+    lead_id = int(re.search(r"№(\d+)", last.answer.call_args.args[0]).group(1))
+    lead = leads.get_lead(lead_id)
+    assert lead["source"] == "manual" and lead["request"] == ""
+    assert lead["contact"] == "+7 900 555-44-33"
+    assert set(lead["tags"]) == {"вручную", "горячий", "seo"}
 
 
 def test_personal_telegram_flow():
